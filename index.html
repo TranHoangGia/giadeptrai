@@ -712,35 +712,64 @@ setTimeout(()=>{
 
 /* ===== LEADERBOARD ===== */
 function saveScore(){
-    let data=JSON.parse(localStorage.getItem("scores"))||[];
-    data.push({name:playerName,score});
-    data.sort((a,b)=>b.score-a.score);
-    data=data.slice(0,10); // chỉ top 10
-    localStorage.setItem("scores",JSON.stringify(data));
-    loadScores();
+    saveScoreOnline(playerName,score);
 }
 
 function loadScores(){
-    let list=document.getElementById("scores");
-    list.innerHTML="";
-    let data=JSON.parse(localStorage.getItem("scores"))||[];
-
-    data.forEach((s,index)=>{
-    let li=document.createElement("li");
-
-    li.textContent = (index+1) + ". " + s.name + " - " + s.score;
-
-    if(index===0){
-        li.style.color="gold";
-        li.style.fontWeight="bold";
-        li.textContent="👑 " + li.textContent;
-    }
-
-    list.appendChild(li);
-});
+    loadScoresOnline();
 }
 
 loadScores();
+</script>
+<!-- FIREBASE ONLINE SCORE -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getDatabase, ref, push, onValue, query, orderByChild, limitToLast }
+from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "DÁN_API_KEY",
+  authDomain: "PROJECT_ID.firebaseapp.com",
+  databaseURL: "https://PROJECT_ID-default-rtdb.firebaseio.com",
+  projectId: "PROJECT_ID"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+window.saveScoreOnline = function(name,score){
+    push(ref(db,"scores"),{ name:name, score:score });
+}
+
+window.loadScoresOnline = function(){
+    const scoresRef = query(
+        ref(db,"scores"),
+        orderByChild("score"),
+        limitToLast(10)
+    );
+
+    onValue(scoresRef,(snapshot)=>{
+        let list=document.getElementById("scores");
+        list.innerHTML="";
+        let data=[];
+        snapshot.forEach(child=>{
+            data.push(child.val());
+        });
+
+        data.sort((a,b)=>b.score-a.score);
+
+        data.forEach((s,index)=>{
+            let li=document.createElement("li");
+            li.textContent=(index+1)+". "+s.name+" - "+s.score;
+            if(index===0){
+                li.style.color="gold";
+                li.style.fontWeight="bold";
+                li.textContent="👑 "+li.textContent;
+            }
+            list.appendChild(li);
+        });
+    });
+}
 </script>
 </body>
 </html>
