@@ -6,6 +6,11 @@
 <title>Snake Hoàng Gia</title>
 
 <style>
+    #pauseBtn.paused{
+    background:#ff4444;
+    box-shadow:0 0 20px red;
+    color:white;
+}
     .snake-icon{
     filter: drop-shadow(0 0 10px #00ffaa)
             drop-shadow(0 0 20px #00ffaa)
@@ -250,6 +255,14 @@ button:hover{background:#00cc88;}
         <h2>Nhập tên vào DCM</h2>
         <input id="playerName">
         <br>
+<select id="snakeSkin">
+    <option value="#1abc9c">Xanh Ngọc</option>
+    <option value="#00ff00">Xanh Lá</option>
+    <option value="#ff00ff">Tím Neon</option>
+    <option value="#ff4444">Đỏ</option>
+    <option value="#ffffff">Trắng</option>
+</select>
+        <br>
         <button onclick="startGame()">BẮT ĐẦU</button>
     </div>
 </div>
@@ -286,6 +299,9 @@ button:hover{background:#00cc88;}
     <button onclick="togglePause()" id="pauseBtn" class="outsidePause">
         ⏸ Tạm dừng
     </button>
+    <button onclick="toggleSound()" id="soundBtn" class="outsidePause">
+    🔊 Âm thanh: ON
+</button>
 
 </div>
 </div>
@@ -296,6 +312,17 @@ const ctx=canvas.getContext("2d");
 const box=15;
 
 let snake,dir,food,score,playerName;
+score = 0;
+let level = 1;
+let highScore = localStorage.getItem("snakeHighScore");
+
+if(highScore === null){
+    highScore = 0;
+}else{
+    highScore = parseInt(highScore);
+}
+let snakeColor = "#1abc9c";
+let soundOn = true;
 let paused = false;
 let bonus = null;
 let bonusTimer = 0;
@@ -310,10 +337,29 @@ function togglePause(){
 
     paused = !paused;
 
-    document.getElementById("pauseBtn").innerText =
-        paused ? "▶ Tiếp tục" : "⏸ Tạm dừng";
-}
+    const btn = document.getElementById("pauseBtn");
 
+    if(paused){
+        btn.innerText = "▶ Tiếp tục";
+        btn.classList.add("paused");
+        bgMusic.volume = 0.3; // nhạc nhỏ lại khi pause
+    }else{
+        btn.innerText = "⏸ Tạm dừng";
+        btn.classList.remove("paused");
+        bgMusic.volume = 1; // nhạc trở lại
+    }
+}
+function toggleSound(){
+
+    soundOn = !soundOn;
+
+    document.getElementById("soundBtn").innerText =
+        soundOn ? "🔊 Âm thanh: ON" : "🔇 Âm thanh: OFF";
+
+    bgMusic.muted = !soundOn;
+    eatSound.muted = !soundOn;
+    dieSound.muted = !soundOn;
+}
 /* ===== SOUND ===== */
 const eatSound = new Audio("eat.wav");
 const dieSound = new Audio("die.wav");
@@ -352,6 +398,7 @@ function randomBonus(){
 function startGame(){
 
     playerName=document.getElementById("playerName").value.trim();
+    snakeColor = document.getElementById("snakeSkin").value;
     if(!playerName){
         alert("Nhập tên!");
         return;
@@ -362,11 +409,18 @@ function startGame(){
     document.getElementById("startScreen").classList.add("hidden");
 
     snake=[{x:300,y:300},{x:285,y:300},{x:270,y:300}];
-    dir="RIGHT";
-    score=0;
-    food=randomFood();
-    particles=[];
-    running=true;
+dir="RIGHT";
+score=0;
+level = 1;
+speed = 90;
+lastMove = 0;
+
+food=randomFood();
+particles=[];
+running=true;     
+
+cancelAnimationFrame(animationId);
+
 
     bgMusic.currentTime = 0;
 bgMusic.play().then(()=>{
@@ -395,10 +449,15 @@ function setDir(newDir){
 document.addEventListener("keydown",e=>{
     if(!running)return;
     
-    if(e.key==="ArrowLeft"&&dir!=="RIGHT")dir="LEFT";
-    if(e.key==="ArrowRight"&&dir!=="LEFT")dir="RIGHT";
-    if(e.key==="ArrowUp"&&dir!=="DOWN")dir="UP";
-    if(e.key==="ArrowDown"&&dir!=="UP")dir="DOWN";
+    if(e.key==="ArrowLeft" && dir!=="RIGHT") dir="LEFT";
+    if(e.key==="ArrowRight" && dir!=="LEFT") dir="RIGHT";
+    if(e.key==="ArrowUp" && dir!=="DOWN") dir="UP";
+    if(e.key==="ArrowDown" && dir!=="UP") dir="DOWN";
+
+    // Nhấn P để pause
+    if(e.key==="p" || e.key==="P"){
+        togglePause();
+    }
 });
 
 /* ===== PREMIUM SNAKE SKIN ===== */
@@ -406,7 +465,7 @@ function drawSnake(){
 
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
-    ctx.strokeStyle = "#1abc9c";
+    ctx.strokeStyle = snakeColor;
     ctx.lineWidth = box - 4;
 
     // ===== BODY (TÁCH PATH KHI XUYÊN MAP) =====
@@ -462,7 +521,7 @@ snake.forEach((seg,i)=>{
     let cy = head.y + box/2;
 
     ctx.beginPath();
-    ctx.fillStyle = "#1abc9c";
+    ctx.fillStyle = snakeColor;
     ctx.arc(cx, cy, box/2 + 1, 0, Math.PI*2);
     ctx.fill();
 
@@ -542,7 +601,7 @@ function drawBonus(){
 
     // nếu qua 70% thời gian → bắt đầu mờ dần
     if(lifeRatio > 0.5){
-        alpha = 1 - (lifeRatio - 0.7) / 0.3;
+        alpha = 1 - (lifeRatio - 0.5) / 0.5;
     }
 
     // hiệu ứng nhấp nháy nhẹ khi gần hết
@@ -609,89 +668,77 @@ function drawParticles(){
 
 /* ===== UPDATE ===== */
 function update(timestamp){
+
     if(!running) return;
 
-if(paused){
-    animationId = requestAnimationFrame(update);
-    return;
-}
-
-    if(timestamp-lastMove>speed){
-
-        lastMove=timestamp;
-
-        let headX=snake[0].x;
-        let headY=snake[0].y;
-
-        if(dir==="LEFT")headX-=box;
-        if(dir==="RIGHT")headX+=box;
-        if(dir==="UP")headY-=box;
-        if(dir==="DOWN")headY+=box;
-
-        if(headX<0)headX=canvas.width-box;
-        if(headY<0)headY=canvas.height-box;
-        if(headX>=canvas.width)headX=0;
-        if(headY>=canvas.height)headY=0;
-
-        // xuất hiện bonus ngẫu nhiên
-if(!bonus){
-    if(Math.random() < 0.01 + score*0.0002){
-        bonus = randomBonus();
-        bonusTimer = Date.now();
+    if(paused){
+        animationId = requestAnimationFrame(update);
+        return;
     }
-}
 
-// bonus tự mất
-if(bonus && Date.now() - bonusTimer > bonus.life){
-    bonus = null;
-}
+    if(timestamp - lastMove > speed){
 
-// ăn bonus
-if(bonus){
-    let dx2 = headX - bonus.x;
-    let dy2 = headY - bonus.y;
-    let dist2 = Math.sqrt(dx2*dx2 + dy2*dy2);
+        lastMove = timestamp;
 
-    if(dist2 < bonus.radius){
-        score += 5;
-        createExplosion(bonus.x+box/2, bonus.y+box/2);
-        bonus = null;
-    }
-}
+        let headX = snake[0].x;
+        let headY = snake[0].y;
 
-        // PHẠM VI ĂN RỘNG
-        let dx=headX-food.x;
-        let dy=headY-food.y;
-        let distance=Math.sqrt(dx*dx+dy*dy);
+        if(dir==="LEFT") headX -= box;
+        if(dir==="RIGHT") headX += box;
+        if(dir==="UP") headY -= box;
+        if(dir==="DOWN") headY += box;
+
+        if(headX<0) headX = canvas.width-box;
+        if(headY<0) headY = canvas.height-box;
+        if(headX>=canvas.width) headX = 0;
+        if(headY>=canvas.height) headY = 0;
+
+        // 🔥 THÊM ĐẦU MỚI
+        snake.unshift({x: headX, y: headY});
+
+        // ĂN FOOD
+        let dx = headX - food.x;
+        let dy = headY - food.y;
+        let distance = Math.sqrt(dx*dx + dy*dy);
 
         if(distance < food.radius){
+
             score++;
-            eatSound.currentTime=0;
+
+            if(score > highScore){
+                highScore = score;
+                localStorage.setItem("snakeHighScore", highScore);
+            }
+
+            if(score % 5 === 0){
+                level++;
+                speed -= 8;
+                if(speed < 40) speed = 40;
+            }
+
+            eatSound.currentTime = 0;
             eatSound.play();
-            createExplosion(food.x+box/2,food.y+box/2);
-            food=randomFood();
+            createExplosion(food.x+box/2, food.y+box/2);
+            food = randomFood();
+
         }else{
             snake.pop();
         }
-
-        if(snake.some((s,i)=>i>0 && s.x===headX && s.y===headY)){
-            endGame();
-            return;
-        }
-
-        snake.unshift({x:headX,y:headY});
     }
 
+    // ===== LUÔN LUÔN VẼ =====
     ctx.clearRect(0,0,canvas.width,canvas.height);
-
     drawFood();
     drawBonus();
     drawSnake();
     drawParticles();
-    document.getElementById("liveScore").innerText =
-    "Điểm hiện tại: " + score;
 
-    animationId=requestAnimationFrame(update);
+    document.getElementById("liveScore").innerText =
+        "Level: " + level +
+        " | Điểm: " + score +
+        " | 🏆 Cao nhất: " + highScore;
+
+    animationId = requestAnimationFrame(update);
 }
 
 /* ===== GAME OVER ===== */
@@ -716,10 +763,10 @@ function saveScore(){
 }
 
 function loadScores(){
-    loadScoresOnline();
+    if(typeof loadScoresOnline === "function"){
+        loadScoresOnline();
+    }
 }
-
-loadScores();
 </script>
 <!-- FIREBASE ONLINE SCORE -->
 <script type="module">
@@ -772,4 +819,4 @@ window.loadScoresOnline = function(){
 }
 </script>
 </body>
-</html>
+</html> 
