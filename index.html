@@ -241,13 +241,13 @@ button:hover{background:#00cc88;}
 
 <div class="title">
     <span class="snake-icon">🐍</span>
-    SNAKE HOÀNG GIA
+    SNAKE BONNIE
 </div>
 
 
 <div class="overlay" id="startScreen">
     <div class="panel">
-        <h2>Nhập tên của bạn</h2>
+        <h2>Nhập tên vào DCM</h2>
         <input id="playerName">
         <br>
         <button onclick="startGame()">BẮT ĐẦU</button>
@@ -368,8 +368,12 @@ function startGame(){
     particles=[];
     running=true;
 
-    bgMusic.currentTime=0;
-    bgMusic.play();
+    bgMusic.currentTime = 0;
+bgMusic.play().then(()=>{
+    console.log("Nhạc chạy");
+}).catch(()=>{
+    alert("Trình duyệt chặn autoplay");
+});
 
     animationId=requestAnimationFrame(update);
 }
