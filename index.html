@@ -6,6 +6,11 @@
 <title>Snake Hoàng Gia</title>
 
 <style>
+    .snake-icon{
+    filter: drop-shadow(0 0 10px #00ffaa)
+            drop-shadow(0 0 20px #00ffaa)
+            drop-shadow(0 0 40px #00ffaa);
+}
     /* ===== SHAKE EFFECT ===== */
 @keyframes shake {
     0% { transform: translate(0px, 0px); }
@@ -67,7 +72,7 @@ body{
         );
     display:flex;
     flex-direction:column;
-    align-items:center;}
+    align-items:center;
     /* ===== MOBILE CONTROLS ===== */
 .mobile-controls{
     display:none;
@@ -119,14 +124,36 @@ body{
 
 /* ===== TITLE ===== */
 .title{
-    margin-top:20px;
-    font-size:40px;
-    font-weight:bold;
-    color:#00ffcc;
+    margin-top:25px;
+    font-size:70px;
+    font-weight:900;
+    letter-spacing:3px;
+    color:#00ffff;
+    text-align:center;
+
+    -webkit-text-stroke: 3px black;
+
     text-shadow:
-        0 0 5px #00ffcc,
-        0 0 15px #00ffcc,
-        0 0 30px #00ffaa;
+        2px 2px 0 black,
+        -2px -2px 0 black,
+        0 0 15px #00ffff,
+        0 0 35px #00ffaa,
+        0 0 60px #00ffaa;
+}
+@keyframes glowPulse{
+    from{
+        text-shadow:
+            0 0 10px #00ffff,
+            0 0 25px #00ffff,
+            0 0 50px #00ffaa;
+    }
+    to{
+        text-shadow:
+            0 0 20px #00ffff,
+            0 0 40px #00ffff,
+            0 0 80px #00ffaa,
+            0 0 120px #00ffaa;
+    }
 }
 
 /* ===== WRAPPER ===== */
@@ -212,7 +239,11 @@ button:hover{background:#00cc88;}
 </head>
 <body>
 
-<div class="title">🐍 SNAKE HOÀNG GIA</div>
+<div class="title">
+    <span class="snake-icon">🐍</span>
+    SNAKE HOÀNG GIA
+</div>
+
 
 <div class="overlay" id="startScreen">
     <div class="panel">
